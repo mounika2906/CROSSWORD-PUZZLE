@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { db } from "@/lib/firebase";
-import { ref, set, onValue, update } from "firebase/database";
+import { ref, set, onValue, update, get } from "firebase/database";
+import { v4 as uuidv4 } from 'uuid';
 
-const gridSize = 10;
+import { generateAIResponse } from "@/lib/groq";
+
+
+const gameId = "test-game-1";
+const playerId = "player";
 
 const puzzle = {
   solution: [
@@ -41,17 +46,19 @@ export default function GamePage() {
   const [grid, setGrid] = useState<(string | null)[][]>(
     puzzle.solution.map(row => row.map(cell => (cell ? '' : null)))
   );
-  const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
-  const [selectedWordCells, setSelectedWordCells] = useState<{ row: number; col: number }[]>([]);
+  const [selected, setSelected] = useState<{ row: number, col: number } | null>(null);
+  const [selectedWordCells, setSelectedWordCells] = useState<{ row: number, col: number }[]>([]);
   const [solvedBy, setSolvedBy] = useState<Record<string, "player" | "ai">>({});
+  const [messages, setMessages] = useState<{ sender: 'player' | 'ai', message: string, timestamp: number }[]>([]);
+  const [input, setInput] = useState('');
   const [playerScore, setPlayerScore] = useState(0);
   const [aiScore, setAiScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
-  const [winner, setWinner] = useState<"player" | "ai" | "tie" | null>(null);
-  const [messages, setMessages] = useState<{ sender: 'player' | 'ai'; message: string; timestamp: number }[]>([]);
-  const [input, setInput] = useState('');
+  const [startTime] = useState(Date.now());
 
-  const gameId = 'test-game-1';
+  const totalWords =
+    Object.keys(puzzle.wordCoordinates.across).length +
+    Object.keys(puzzle.wordCoordinates.down).length;
 
   const handleCellClick = (row: number, col: number) => {
     setSelected({ row, col });
@@ -73,25 +80,95 @@ export default function GamePage() {
     newGrid[selected.row][selected.col] = key;
     setGrid(newGrid);
 
-    setSelected((prev) =>
-      prev ? { row: prev.row, col: Math.min(prev.col + 1, gridSize - 1) } : null
+    setSelected(prev =>
+      prev ? { row: prev.row, col: Math.min(prev.col + 1, 9) } : null
     );
   };
 
   const markWordSolved = async (wordId: string, by: "player" | "ai") => {
     const wordRef = ref(db, `games/${gameId}/solved_words/${wordId}`);
+    const snapshot = await get(wordRef);
+    if (snapshot.exists()) return;
+
     const time = Date.now();
-    await set(wordRef, { solved_by: by, timestamp: time, word: wordId });
+
+    await set(wordRef, {
+      solved_by: by,
+      timestamp: time,
+      word: wordId,
+    });
 
     const scoreRef = ref(db, `games/${gameId}/${by}_score/${wordId}`);
-    set(scoreRef, time);
+    await set(scoreRef, time);
+
+    // if (by === "ai") {
+    //   sendMessage("ai", `Boom! I just cracked "${wordId}" 😎`);
+    // }
+
+    if (by === "ai") {
+      const msg = await generateAIResponse(`I just solved ${wordId}.`);
+      sendMessage("ai", msg);
+    }
+
   };
 
-  const sendMessage = async (sender: 'player' | 'ai', message: string) => {
+ 
+
+
+  //  const sendMessage = async (sender: 'player' | 'ai', message: string) => {
+  //    const timestamp = Date.now();
+  //    const msgRef = ref(db, `chat_messages/${gameId}/${uuidv4()}`);
+  //    await set(msgRef, { sender, message, timestamp });
+  //  };
+  const sendMessage = async (sender: "player" | "ai", message: string) => {
     const timestamp = Date.now();
     const msgRef = ref(db, `chat_messages/${gameId}/${timestamp}`);
+
     await set(msgRef, { sender, message, timestamp });
+
+  // If the player sends a message, get AI's reply
+    if (sender === "player") {
+      try {
+        const res = await fetch("/api/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        });
+
+        const data = await res.json();
+
+        const aiMessage =
+          res.ok && data?.response
+            ? data.response
+            : "🤖 Sorry, I couldn’t come up with a witty reply.";
+
+        const aiTimestamp = Date.now() + 1;
+
+        await set(ref(db, `chat_messages/${gameId}/${aiTimestamp}`), {
+          sender: "ai",
+          message: aiMessage,
+          timestamp: aiTimestamp,
+        });
+      } catch (error) {
+        console.error("AI error:", error);
+
+        const fallbackMessage = "🤖 Error contacting brain server. Try again later.";
+        const aiTimestamp = Date.now() + 1;
+
+        await set(ref(db, `chat_messages/${gameId}/${aiTimestamp}`), {
+          sender: "ai",
+          message: fallbackMessage,
+          timestamp: aiTimestamp,
+        });
+      }
+    }
   };
+
+
+
+
+
+  
 
   useEffect(() => {
     const msgRef = ref(db, `chat_messages/${gameId}`);
@@ -105,22 +182,6 @@ export default function GamePage() {
   }, []);
 
   useEffect(() => {
-    const aiTimeout = setTimeout(() => {
-      markWordSolved("across_1", "ai");
-      alert("🧠 AI solved Across 1!");
-    }, 5000);
-    return () => clearTimeout(aiTimeout);
-  }, []);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      markWordSolved("down_1", "player");
-      alert("✅ Player solved Down 1!");
-    }, 8000);
-    return () => clearTimeout(timeout);
-  }, []);
-
-  useEffect(() => {
     const wordRef = ref(db, `games/${gameId}/solved_words`);
     onValue(wordRef, (snapshot) => {
       const data = snapshot.val();
@@ -130,52 +191,69 @@ export default function GamePage() {
           solvedMap[wordId] = details.solved_by;
         });
         setSolvedBy(solvedMap);
+
+        if (Object.keys(solvedMap).length === totalWords) {
+          setGameOver(true);
+        }
       }
     });
   }, []);
 
   useEffect(() => {
-    const totalWords = Object.keys(puzzle.wordCoordinates.across).length + Object.keys(puzzle.wordCoordinates.down).length;
-    const totalSolved = Object.keys(solvedBy).length;
-    if (totalSolved === totalWords) {
-      setGameOver(true);
-      setWinner(playerScore > aiScore ? "player" : aiScore > playerScore ? "ai" : "tie");
-    }
-  }, [solvedBy, playerScore, aiScore]);
+    const playerRef = ref(db, `games/${gameId}/player_score`);
+    const aiRef = ref(db, `games/${gameId}/ai_score`);
 
-  useEffect(() => {
-    const updateScore = (snap: any, setter: any) => {
+    const updateScore = (snap: any, setter: (n: number) => void) => {
       const val = snap.val();
       setter(val ? Object.keys(val).length : 0);
     };
-    onValue(ref(db, `games/${gameId}/player_score`), snap => updateScore(snap, setPlayerScore));
-    onValue(ref(db, `games/${gameId}/ai_score`), snap => updateScore(snap, setAiScore));
+
+    onValue(playerRef, snap => updateScore(snap, setPlayerScore));
+    onValue(aiRef, snap => updateScore(snap, setAiScore));
+  }, []);
+
+  // Simulate solving
+  useEffect(() => {
+    setTimeout(() => markWordSolved("across_1", "ai"), 1000);
+    setTimeout(() => markWordSolved("down_1", "player"), 2000);
   }, []);
 
   return (
     <div className="p-4" onKeyDown={handleKeyDown} tabIndex={0}>
       <h2 className="text-xl font-bold mb-4">🧩 Crossword Grid</h2>
+
       <div className="mb-4 flex gap-6 text-lg">
         <p>🧑 Player Score: <strong>{playerScore}</strong></p>
         <p>🤖 AI Score: <strong>{aiScore}</strong></p>
       </div>
+
       {gameOver && (
         <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded">
           <h3 className="text-lg font-semibold">🏁 Game Over</h3>
-          <p>Winner: <strong>{winner === "player" ? "🧑 Player" : winner === "ai" ? "🤖 AI" : "🤝 Tie"}</strong></p>
+          <p>
+            Winner: <strong>
+              {playerScore > aiScore ? '🧑 Player' : aiScore > playerScore ? '🤖 AI' : '🤝 Tie'}
+            </strong>
+          </p>
+          <p>🧑 Player Score: {playerScore}</p>
+          <p>🤖 AI Score: {aiScore}</p>
+          <p className="mt-2 text-sm text-gray-700">⏱ Time Taken: {((Date.now() - startTime) / 1000).toFixed(1)} seconds</p>
         </div>
       )}
+
       <div className="mb-4">
         <h3 className="font-semibold">Clues:</h3>
         <p><strong>Across 1:</strong> {puzzle.clues.across['1']}</p>
         <p><strong>Down 1:</strong> {puzzle.clues.down['1']}</p>
       </div>
-      <div className="grid grid-cols-10 gap-1 max-w-max">
+
+      <div className="grid grid-cols-10 gap-1 max-w-max mb-6">
         {grid.map((row, rIdx) =>
           row.map((cell, cIdx) => {
             const isSelected = selected?.row === rIdx && selected?.col === cIdx;
             const isHighlighted = selectedWordCells.some(c => c.row === rIdx && c.col === cIdx);
             const isPlayable = puzzle.solution[rIdx][cIdx] !== '';
+
             let solvedByPlayerOrAI: "player" | "ai" | null = null;
             for (const [wordId, cells] of Object.entries(puzzle.wordCoordinates.across)) {
               if (cells.some(c => c.row === rIdx && c.col === cIdx) && solvedBy[wordId]) {
@@ -187,16 +265,17 @@ export default function GamePage() {
                 solvedByPlayerOrAI = solvedBy[wordId];
               }
             }
+
             return (
               <div
                 key={`${rIdx}-${cIdx}`}
                 onClick={() => isPlayable && handleCellClick(rIdx, cIdx)}
-                className={`w-10 h-10 border flex items-center justify-center cursor-pointer text-lg ${
-                  isSelected ? 'bg-yellow-300' : isHighlighted ? 'bg-blue-200' :
-                    solvedByPlayerOrAI === 'player' ? 'bg-green-300' :
-                      solvedByPlayerOrAI === 'ai' ? 'bg-red-300' :
-                        isPlayable ? 'bg-white' : 'bg-gray-300'
-                }`}
+                className={`w-10 h-10 border flex items-center justify-center text-lg font-semibold cursor-pointer 
+                  ${isSelected ? 'bg-yellow-300' :
+                    isHighlighted ? 'bg-blue-200' :
+                      solvedByPlayerOrAI === 'player' ? 'bg-green-300' :
+                        solvedByPlayerOrAI === 'ai' ? 'bg-red-300' :
+                          isPlayable ? 'bg-white' : 'bg-gray-300'}`}
               >
                 {cell}
               </div>
@@ -205,7 +284,6 @@ export default function GamePage() {
         )}
       </div>
 
-      {/* Chat UI */}
       <div className="mt-6 border-t pt-4">
         <h3 className="text-lg font-semibold mb-2">💬 Chat</h3>
         <div className="mb-2 max-h-48 overflow-y-auto bg-gray-100 p-2 rounded">
