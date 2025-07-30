@@ -1,4 +1,7 @@
-#  Crossword Battle Arena
+#  Crossword puzzle game
+
+![image1.png](https://github.com/mounika2906/CROSSWORD-PUZZLE/blob/aa96b10346cedae44d6d776cd1fda3b50f9df663/cv%20.png)
+![image.png](https://github.com/mounika2906/CROSSWORD-PUZZLE/blob/aa96b10346cedae44d6d776cd1fda3b50f9df663/cv%202.png)
 
 A real-time, AI-powered, web-based crossword game where human players challenge an intelligent opponent that competes and chats simultaneously.
 
