@@ -117,9 +117,9 @@ In Netlify dashboard, click New site from Git and connect your GitHub repository
 
 Configure the build settings:
 
-# Build command: npm run build
+### Build command: npm run build
 
-# Publish directory: .next
+### Publish directory: .next
 
 Add Firebase environment variables in Netlify dashboard:
 
