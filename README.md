@@ -100,6 +100,7 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 The game is deployed on Netlify for easy online access.
 
 Steps to Deploy on Netlify
+
 Build the app
 
 npm run build
@@ -110,21 +111,17 @@ In Netlify dashboard, click New site from Git and connect your GitHub repository
 
 Configure the build settings:
 
-Build command: npm run build
+# Build command: npm run build
 
-Publish directory: .next
+# Publish directory: .next
 
 Add Firebase environment variables in Netlify dashboard:
 
-NEXT_PUBLIC_FIREBASE_API_KEY
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-NEXT_PUBLIC_FIREBASE_PROJECT_ID
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-NEXT_PUBLIC_FIREBASE_APP_ID
+
 Deploy the site. After build completes, your live game will be available at a Netlify-generated URL.
 
-Usage
+## Usage
+
 Visit the deployed link or run locally.
 
 Solve crossword clues to beat the AI opponent.
