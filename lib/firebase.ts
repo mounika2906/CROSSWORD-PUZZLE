@@ -48,7 +48,10 @@
 // };
 
 
-import { initializeApp } from "firebase/app";
+// import { initializeApp } from "firebase/app";
+// import { getDatabase } from "firebase/database";
+
+import { initializeApp, getApps } from "firebase/app";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
@@ -61,9 +64,15 @@ const firebaseConfig = {
   appId: "1:363995489820:web:fbf83d10a67f35c60061d9"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-// ✅ Make sure this is exported correctly
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const db = getDatabase(app);
+
+// // Initialize Firebase
+// const app = initializeApp(firebaseConfig);
+
+// // ✅ Make sure this is exported correctly
+// export const db = getDatabase(app);
+
+
+
 
