@@ -329,6 +329,16 @@ export default function CrosswordGame() {
     return (
       
       <div className="flex flex-col items-center justify-center h-screen gap-4 w-full">
+        <div className="max-w-lg w-full bg-white border border-gray-300 rounded-lg shadow p-4 mb-4">
+          <h2 className="text-lg font-bold mb-2">How to Play Crossword Battle Arena</h2>
+          <ul className="list-disc pl-5 text-gray-700 text-sm">
+            <li>Select a difficulty level to start a new game.</li>
+            <li>Fill the crossword grid by clicking cells and typing your answers.</li>
+            <li>Get instant feedback for each word: <span className="text-green-600 font-bold">✅ Correct!</span> or <span className="text-red-600 font-bold">❌ Wrong!</span></li>
+            <li>Compete against the AI for the highest score.</li>
+            <li>View the scoreboard to see top players.</li>
+          </ul>
+        </div>
         <h1 className="text-2xl font-bold mb-4">Select Level</h1>
         <div className="flex gap-4">
           {["easy", "medium", "hard"].map((lvl) => (
