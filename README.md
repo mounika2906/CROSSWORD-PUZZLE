@@ -1,9 +1,9 @@
 
 # Crossword Battle Arena
 
-![App Screenshot1](public\puzzle1.png)
-![App Screenshot2](public\puzzle 2.png)
-![App Screenshot3](public\puzzle3.png)
+![App Screenshot1](https://github.com/mounika2906/CROSSWORD-PUZZLE/blob/921d1577be5c2877e01a1f234adb17eaf247d43a/public/puzzle1.png)
+![App Screenshot2](https://github.com/mounika2906/CROSSWORD-PUZZLE/blob/921d1577be5c2877e01a1f234adb17eaf247d43a/public/puzzle%202.png)
+![App Screenshot3](https://github.com/mounika2906/CROSSWORD-PUZZLE/blob/921d1577be5c2877e01a1f234adb17eaf247d43a/public/puzzle3.png)
 
 
 
