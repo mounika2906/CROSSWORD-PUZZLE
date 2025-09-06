@@ -1,6 +1,8 @@
 // utils/puzzles.ts
 
 
+
+
 export type WordSpec = {
   id: string;
   clue: string;
@@ -39,6 +41,8 @@ function buildSolutionGrid(words: WordSpec[]): string[][] {
   return grid;
 }
 
+// ...existing code...
+
 export const PUZZLES: Puzzle[] = [
   {
     id: "puz-easy-1",
@@ -76,5 +80,18 @@ export const PUZZLES: Puzzle[] = [
       { id: "D2", clue: "Used to cut paper", answer: "SCISSORS", row: 0, col: 3, dir: "down" },
     ]),
   },
+  {
+    id: "puz-hard-1",
+    title: "Hard Grid",
+    words: [
+      { id: "A1", clue: "Largest planet in our solar system", answer: "JUPITER", row: 1, col: 1, dir: "across" },
+      { id: "D1", clue: "Inventor of the light bulb", answer: "EDISON", row: 0, col: 3, dir: "down" },
+      { id: "A2", clue: "Capital of France", answer: "PARIS", row: 5, col: 2, dir: "across" },
+    ],
+    grid: buildSolutionGrid([
+      { id: "A1", clue: "Largest planet in our solar system", answer: "JUPITER", row: 1, col: 1, dir: "across" },
+      { id: "D1", clue: "Inventor of the light bulb", answer: "EDISON", row: 0, col: 3, dir: "down" },
+      { id: "A2", clue: "Capital of France", answer: "PARIS", row: 5, col: 2, dir: "across" },
+    ]),
+  },
 ];
-
